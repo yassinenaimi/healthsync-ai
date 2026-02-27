@@ -6,7 +6,7 @@
 
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, SlidersHorizontal, ArrowUpDown, X, Filter, Loader2 } from "lucide-react";
+import { Search, SlidersHorizontal, ArrowUpDown, X, Filter, Loader2, Sparkles, MessageSquare, Shield, Heart } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import PlanCard from "@/components/PlanCard";
 import BodyMap from "@/components/BodyMap";
@@ -358,92 +358,156 @@ export default function Discovery() {
                 />
               ) : (
                 <>
-                  {/* Sort & Count */}
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-sm text-slate-400">
-                      {loading ? (
-                        <span className="flex items-center gap-2">
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
-                          Loading plans...
-                        </span>
-                      ) : (
-                        <>
+                  {/* Show plan grid when plans are loaded from DB */}
+                  {!loading && !error && filteredPlans.length > 0 && (
+                    <>
+                      {/* Sort & Count */}
+                      <div className="flex items-center justify-between mb-4">
+                        <p className="text-sm text-slate-400">
                           <span className="font-mono text-cyan-300 font-semibold">{filteredPlans.length}</span> plans found
-                        </>
-                      )}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
-                      <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-                        <SelectTrigger className="bg-white/[0.05] border-white/10 text-xs text-white w-[160px] h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-white/10">
-                          {sortOptions.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
+                          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+                            <SelectTrigger className="bg-white/[0.05] border-white/10 text-xs text-white w-[160px] h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-900 border-white/10">
+                              {sortOptions.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Active filters */}
+                      {(filters.province || filters.planType || filters.mustHaves.length > 0 || filters.maxPremium < 500) && (
+                        <div className="flex flex-wrap gap-1.5 mb-4">
+                          {filters.province && (
+                            <FilterBadge label={`Province: ${filters.province}`} onRemove={() => updateFilters({ province: "" })} />
+                          )}
+                          {filters.planType && (
+                            <FilterBadge label={`Type: ${filters.planType}`} onRemove={() => updateFilters({ planType: "" })} />
+                          )}
+                          {filters.maxPremium < 500 && (
+                            <FilterBadge label={`Max: $${filters.maxPremium}/mo`} onRemove={() => updateFilters({ maxPremium: 500 })} />
+                          )}
+                          {filters.mustHaves.map((c) => (
+                            <FilterBadge
+                              key={c}
+                              label={c}
+                              onRemove={() => updateFilters({ mustHaves: filters.mustHaves.filter((x) => x !== c) })}
+                            />
                           ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                        </div>
+                      )}
 
-                  {/* Active filters */}
-                  {(filters.province || filters.planType || filters.mustHaves.length > 0 || filters.maxPremium < 500) && (
-                    <div className="flex flex-wrap gap-1.5 mb-4">
-                      {filters.province && (
-                        <FilterBadge label={`Province: ${filters.province}`} onRemove={() => updateFilters({ province: "" })} />
-                      )}
-                      {filters.planType && (
-                        <FilterBadge label={`Type: ${filters.planType}`} onRemove={() => updateFilters({ planType: "" })} />
-                      )}
-                      {filters.maxPremium < 500 && (
-                        <FilterBadge label={`Max: $${filters.maxPremium}/mo`} onRemove={() => updateFilters({ maxPremium: 500 })} />
-                      )}
-                      {filters.mustHaves.map((c) => (
-                        <FilterBadge
-                          key={c}
-                          label={c}
-                          onRemove={() => updateFilters({ mustHaves: filters.mustHaves.filter((x) => x !== c) })}
-                        />
-                      ))}
-                    </div>
+                      {/* Plan grid */}
+                      <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch">
+                        <AnimatePresence mode="popLayout">
+                          {filteredPlans.map((plan, i) => (
+                            <PlanCard
+                              key={plan.id}
+                              plan={plan}
+                              index={i}
+                              isCompared={comparedPlanIds.includes(plan.id)}
+                              onToggleCompare={toggleCompare}
+                              onViewDetails={setSelectedPlan}
+                            />
+                          ))}
+                        </AnimatePresence>
+                      </div>
+                    </>
                   )}
 
-                  {/* Error state */}
-                  {error && (
-                    <div className="glass-panel p-8 text-center mb-4">
-                      <p className="text-red-400 text-sm mb-2">Failed to load plans</p>
-                      <p className="text-xs text-slate-500">{error}</p>
-                    </div>
-                  )}
-
-                  {/* Plan grid */}
-                  <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4 items-stretch">
-                    <AnimatePresence mode="popLayout">
-                      {filteredPlans.map((plan, i) => (
-                        <PlanCard
-                          key={plan.id}
-                          plan={plan}
-                          index={i}
-                          isCompared={comparedPlanIds.includes(plan.id)}
-                          onToggleCompare={toggleCompare}
-                          onViewDetails={setSelectedPlan}
-                        />
-                      ))}
-                    </AnimatePresence>
-                  </div>
-
-                  {!loading && !error && filteredPlans.length === 0 && (
+                  {/* Loading state */}
+                  {loading && (
                     <div className="glass-panel p-12 text-center">
-                      <Filter className="w-8 h-8 text-slate-500 mx-auto mb-3" />
-                      <p className="text-slate-400 text-sm">No plans match your current filters.</p>
-                      <button
-                        onClick={resetFilters}
-                        className="mt-3 text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
-                      >
-                        Reset filters
-                      </button>
+                      <Loader2 className="w-8 h-8 text-cyan-400 animate-spin mx-auto mb-3" />
+                      <p className="text-slate-400 text-sm">Loading plans...</p>
                     </div>
+                  )}
+
+                  {/* Friendly welcome state — shown when no plans loaded (DB unavailable or empty) */}
+                  {!loading && (error || filteredPlans.length === 0) && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                      className="space-y-6"
+                    >
+                      {/* Hero welcome card */}
+                      <div className="glass-panel p-8 sm:p-10 text-center relative overflow-hidden">
+                        {/* Ambient glow */}
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+                        <div className="absolute bottom-0 right-0 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                        <div className="relative z-10">
+                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-5 border border-cyan-500/10">
+                            <Sparkles className="w-8 h-8 text-cyan-400" />
+                          </div>
+
+                          <h2 className="font-heading text-2xl sm:text-3xl font-bold text-white mb-3">
+                            Tell us your <span className="text-gradient-cyan">story</span>
+                          </h2>
+                          <p className="text-slate-400 text-sm sm:text-base max-w-md mx-auto mb-6 leading-relaxed">
+                            Describe your health needs, family situation, and budget in plain English.
+                            Our AI will find the best Canadian insurance plans for you.
+                          </p>
+
+                          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/20">
+                            <MessageSquare className="w-4 h-4 text-cyan-400" />
+                            <span className="text-xs sm:text-sm text-cyan-300 font-medium">Use the AI Search panel on the left to get started</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Feature highlights */}
+                      <div className="grid sm:grid-cols-3 gap-4">
+                        <div className="glass-panel p-5 text-center">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-3">
+                            <Shield className="w-5 h-5 text-emerald-400" />
+                          </div>
+                          <h3 className="text-sm font-semibold text-white mb-1">Real Plans</h3>
+                          <p className="text-xs text-slate-500 leading-relaxed">AI-powered search finds actual Canadian insurance plans from trusted providers.</p>
+                        </div>
+                        <div className="glass-panel p-5 text-center">
+                          <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center mx-auto mb-3">
+                            <Heart className="w-5 h-5 text-purple-400" />
+                          </div>
+                          <h3 className="text-sm font-semibold text-white mb-1">Personalized</h3>
+                          <p className="text-xs text-slate-500 leading-relaxed">Tailored recommendations based on your unique health needs and family situation.</p>
+                        </div>
+                        <div className="glass-panel p-5 text-center">
+                          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center mx-auto mb-3">
+                            <Search className="w-5 h-5 text-cyan-400" />
+                          </div>
+                          <h3 className="text-sm font-semibold text-white mb-1">Compare</h3>
+                          <p className="text-xs text-slate-500 leading-relaxed">Compare plans side-by-side with detailed coverage breakdowns and true costs.</p>
+                        </div>
+                      </div>
+
+                      {/* Example prompts */}
+                      <div className="glass-panel p-6">
+                        <p className="text-xs text-slate-500 mb-3 text-center">Try saying something like...</p>
+                        <div className="grid sm:grid-cols-2 gap-2">
+                          {[
+                            "Family of 4 in Ontario, need dental and vision",
+                            "Single in BC, need massage therapy coverage",
+                            "Couple in Quebec, budget $200/month",
+                            "Senior in Alberta, need prescription drugs",
+                          ].map((example, i) => (
+                            <div
+                              key={i}
+                              className="px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.06] text-xs text-slate-400 italic"
+                            >
+                              "{example}"
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
                   )}
                 </>
               )}

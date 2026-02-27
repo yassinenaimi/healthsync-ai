@@ -45,16 +45,23 @@ export async function handleCompare(req: Request, res: Response, next: NextFunct
 /**
  * GET /api/plans
  * Returns all plans with full details for frontend browsing/filtering
+ * Gracefully returns empty array if database is unavailable
  */
-export async function handleGetAllPlans(_req: Request, res: Response, next: NextFunction) {
+export async function handleGetAllPlans(_req: Request, res: Response, _next: NextFunction) {
   try {
     const plans = await getAllPlans();
     res.json({
       count: plans.length,
       plans,
     });
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    // Database not connected — return empty plans gracefully instead of 500
+    console.warn("[Plans] Database unavailable, returning empty plans:", error.message);
+    res.json({
+      count: 0,
+      plans: [],
+      notice: "Plan database is currently unavailable. Use AI Search to discover insurance plans.",
+    });
   }
 }
 
